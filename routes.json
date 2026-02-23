@@ -1,0 +1,18 @@
+{
+  "routes": [
+    { "path": "/", "handler": "home", "css": [], "js": [] },
+    { "path": "/about", "handler": "about", "css": [], "js": [] },
+    { "path": "/contact", "handler": "contact", "css": [], "js": [] },
+    { "path": "/blog", "handler": "blog/index", "css": [], "js": [] },
+    { "path": "/blog/{category}", "handler": "blog/category", "css": [], "js": [] },
+    { "path": "/blog/{category}/{slug}", "handler": "blog/detail", "css": [], "js": [] },
+    { "path": "/products", "handler": "products/index", "css": [], "js": [] },
+    { "path": "/products/{category}", "handler": "products/category", "css": [], "js": [] },
+    { "path": "/products/{category}/{slug}", "handler": "products/detail", "css": [], "js": [] },
+    { "path": "/services", "handler": "services/index", "css": [], "js": [] },
+    { "path": "/services/{slug}", "handler": "services/detail", "css": [], "js": [] },
+    { "path": "/projects", "handler": "projects/index", "css": [], "js": [] },
+    { "path": "/projects/{slug}", "handler": "projects/detail", "css": [], "js": [] },
+    { "path": "/page/{slug}", "handler": "page/show", "css": [], "js": [] }
+  ]
+}

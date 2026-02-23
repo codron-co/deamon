@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Codron\Deamon;
 
 /**
- * Simple router: path -> handler (module + action).
- * All routes and code in English.
+ * Router: path -> module/action. URL structure: module/submodule/action or module/{param}/{param}.
+ * Supports routes.json (path with {param}) or add() with * pattern.
  */
 final class Router
 {
     /** @var string */
     private $basePath;
 
-    /** @var array<int, array{pattern: string, module: string, action: string, params?: string[]}> */
+    /** @var array<int, array{pattern: string, params: string[], handler?: string, module?: string, action?: string, css?: array, js?: array}> */
     private $routes = [];
 
     public function __construct(string $basePath = '')
@@ -37,15 +37,45 @@ final class Router
     {
         $this->routes[] = [
             'pattern' => $pattern,
+            'params' => $params,
             'module' => $module,
             'action' => $action,
-            'params' => $params,
         ];
     }
 
     /**
-     * Match current path. Returns [module, action, params] or null.
-     * @return array{0: string, 1: string, 2: array<string, string>}|null
+     * Load routes from JSON. path, handler (page file), optional css, js. URL: module/submodule/action or module/{param}.
+     */
+    public function loadFromJson(string $filePath): void
+    {
+        if (!is_file($filePath)) {
+            return;
+        }
+        $data = json_decode(file_get_contents($filePath), true);
+        if (!isset($data['routes']) || !is_array($data['routes'])) {
+            return;
+        }
+        foreach ($data['routes'] as $r) {
+            $path = $r['path'] ?? '';
+            $handler = $r['handler'] ?? '';
+            if ($path === '' || $handler === '') {
+                continue;
+            }
+            preg_match_all('#\{([a-zA-Z_][a-zA-Z0-9_]*)\}#', $path, $m);
+            $paramNames = $m[1] ?? [];
+            $this->routes[] = [
+                'pattern' => $path,
+                'params' => $paramNames,
+                'handler' => $handler,
+                'css' => $r['css'] ?? [],
+                'js' => $r['js'] ?? [],
+            ];
+        }
+    }
+
+    /**
+     * Match current path. Returns ['route' => routeArray, 'params' => params] or null.
+     * @return array{route: array, params: array<string, string>}|null
      */
     public function match(): ?array
     {
@@ -57,7 +87,7 @@ final class Router
                 foreach ($route['params'] ?? [] as $i => $name) {
                     $params[$name] = $m[$i + 1] ?? '';
                 }
-                return [$route['module'], $route['action'], $params];
+                return ['route' => $route, 'params' => $params];
             }
         }
         return null;
@@ -66,6 +96,7 @@ final class Router
     private function patternToRegex(string $pattern): string
     {
         $pattern = preg_quote($pattern, '#');
+        $pattern = preg_replace('#\\\\\{[^}]+\\\\\}#', '([^/]+)', $pattern);
         $pattern = str_replace('\*', '([^/]+)', $pattern);
         return '#^' . $pattern . '$#';
     }

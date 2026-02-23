@@ -30,7 +30,12 @@ final class App
         $this->config = $config;
         $this->database = new Database($config);
         $this->router = new Router();
-        $this->registerCoreRoutes();
+        $routesJson = $this->config->getDeamonPath() . '/routes.json';
+        if (is_file($routesJson)) {
+            $this->router->loadFromJson($routesJson);
+        } else {
+            $this->registerCoreRoutes();
+        }
     }
 
     public function getConfig(): Config
@@ -86,7 +91,8 @@ final class App
     }
 
     /**
-     * Run the app: match route, dispatch to module, output response.
+     * Run the app: match route, then run that route's handler (one file per route, no clutter).
+     * If route has handler -> include pages/{handler}.php (theme override then deamon). Else dispatch to module.
      */
     public function run(): void
     {
@@ -95,15 +101,39 @@ final class App
             $this->render404();
             return;
         }
-        [$module, $action, $params] = $match;
-        $class = 'Codron\\Deamon\\Modules\\' . $module . '\\' . $module . 'Module';
-        if (!class_exists($class)) {
-            $this->render404();
-            return;
+        $route = $match['route'];
+        $params = $match['params'];
+
+        if (!empty($route['handler'])) {
+            $handler = str_replace(['.', '::'], '/', $route['handler']) . '.php';
+            $themePath = $this->config->getThemePath();
+            $deamonPath = $this->config->getDeamonPath();
+            $paths = $themePath ? [$themePath . '/pages/' . $handler, $deamonPath . '/pages/' . $handler] : [$deamonPath . '/pages/' . $handler];
+            $found = null;
+            foreach ($paths as $p) {
+                if (is_file($p)) {
+                    $found = $p;
+                    break;
+                }
+            }
+            if ($found) {
+                $app = $this;
+                require $found;
+                return;
+            }
         }
-        /** @var ModuleInterface $handler */
-        $handler = new $class($this);
-        $handler->handle($action, $params);
+
+        if (!empty($route['module']) && !empty($route['action'])) {
+            $class = 'Codron\\Deamon\\Modules\\' . $route['module'] . '\\' . $route['module'] . 'Module';
+            if (class_exists($class)) {
+                /** @var ModuleInterface $handler */
+                $handler = new $class($this);
+                $handler->handle($route['action'], $params);
+                return;
+            }
+        }
+
+        $this->render404();
     }
 
     private function render404(): void
