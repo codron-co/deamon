@@ -1,0 +1,25 @@
+{
+    "name": "codron/deamon",
+    "description": "Codron core: routing, modules, DB layer, Twig. One DB per site.",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": ">=7.4",
+        "twig/twig": "^3.0",
+        "ext-pdo": "*",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Codron\\Deamon\\": "src/"
+        },
+        "classmap": [
+            "src/"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Codron\\Deamon\\Tests\\": "tests/"
+        }
+    }
+}
